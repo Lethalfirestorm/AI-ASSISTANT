@@ -1,0 +1,54 @@
+<style>
+  #ai-chat-button{position:fixed;bottom:20px;right:20px;background-color:#007bff;color:white;padding:12px 20px;border-radius:50px;border:none;cursor:pointer;font-size:16px;box-shadow:0 4px 8px rgba(0,0,0,0.2);z-index:9998;}
+  #ai-chat-modal{display:none;position:fixed;bottom:90px;right:20px;width:350px;max-width:90%;height:500px;background-color:white;border-radius:15px;box-shadow:0 5px 15px rgba(0,0,0,0.3);flex-direction:column;z-index:9999;}
+  #ai-chat-header{background-color:#007bff;color:white;padding:15px;border-top-left-radius:15px;border-top-right-radius:15px;text-align:center;font-weight:bold;}
+  #ai-chat-messages{flex-grow:1;padding:15px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;}
+  .ai-chat-bubble{padding:10px 15px;border-radius:20px;max-width:80%;line-height:1.4;}
+  .ai-chat-bubble.user{background-color:#f0f0f0;align-self:flex-end;}
+  .ai-chat-bubble.assistant{background-color:#e1ecf7;align-self:flex-start;}
+  #ai-chat-input-container{display:flex;padding:10px;border-top:1px solid #eee;}
+  #ai-chat-input{flex-grow:1;border:1px solid #ccc;border-radius:20px;padding:10px 15px;font-size:14px;}
+  #ai-chat-send{background-color:#007bff;color:white;border:none;border-radius:50%;width:40px;height:40px;margin-left:10px;cursor:pointer;font-size:18px;}
+</style>
+<button id="ai-chat-button">Ask AI</button>
+<div id="ai-chat-modal">
+  <div id="ai-chat-header">Real Estate Assistant</div>
+  <div id="ai-chat-messages"><div class="ai-chat-bubble assistant">Hi! Ask me anything about this property.</div></div>
+  <div id="ai-chat-input-container"><input type="text" id="ai-chat-input" placeholder="Type your question..."><button id="ai-chat-send">→</button></div>
+</div>
+<script>
+  const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxH5kH9KY9njZ5MjGdvRbatCtrt6-Laa574uRqrPqyJPRZrIPxs52lvj2YQgsTDkHPlrg/exec'; // <--- PASTE YOUR URL HERE
+  const chatButton = document.getElementById('ai-chat-button');
+  const chatModal = document.getElementById('ai-chat-modal');
+  const messagesContainer = document.getElementById('ai-chat-messages');
+  const inputField = document.getElementById('ai-chat-input');
+  const sendButton = document.getElementById('ai-chat-send');
+  chatButton.addEventListener('click', () => { chatModal.style.display = chatModal.style.display === 'flex' ? 'none' : 'flex'; });
+  sendButton.addEventListener('click', sendMessage);
+  inputField.addEventListener('keypress', (event) => { if (event.key === 'Enter') { sendMessage(); } });
+  async function sendMessage() {
+    const question = inputField.value.trim();
+    if (question === '') return;
+    addMessage(question, 'user');
+    inputField.value = '';
+    addMessage('...', 'assistant', true);
+    try {
+      const pageContext = document.body.innerText;
+      const response = await fetch(WEB_APP_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: question, context: pageContext }), mode: 'cors' });
+      const data = await response.json();
+      if (data.answer) { updateLastMessage(data.answer); } else { updateLastMessage('Sorry, something went wrong.'); }
+    } catch (error) { console.error('Error fetching AI response:', error); updateLastMessage('Error connecting to the assistant.'); }
+  }
+  function addMessage(text, sender, isTyping = false) {
+    const bubble = document.createElement('div');
+    bubble.classList.add('ai-chat-bubble', sender);
+    bubble.textContent = text;
+    if (isTyping) { bubble.id = 'typing-indicator'; }
+    messagesContainer.appendChild(bubble);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
+  function updateLastMessage(text) {
+    const typingIndicator = document.getElementById('typing-indicator');
+    if (typingIndicator) { typingIndicator.textContent = text; typingIndicator.id = ''; }
+  }
+</script>
